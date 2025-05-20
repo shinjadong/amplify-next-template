@@ -48,7 +48,7 @@ export default function App() {
     setLanguage(e.target.value);
   };
 
-  // S3에 파일 업로드 및 전사 요청
+  // 전사 요청 처리
   const handleUploadAndTranscribe = async () => {
     if (!file) {
       setError("파일을 선택해주세요.");
@@ -59,34 +59,21 @@ export default function App() {
       setIsUploading(true);
       setError(null);
 
-      // 고유한 파일 이름 생성 (timestamp + 원본 파일 이름)
-      const timestamp = new Date().getTime();
-      const key = `input/${timestamp}-${file.name}`;
-
-      // S3에 파일 업로드
-      await uploadData({
-        key,
-        data: file,
-        options: {
-          contentType: file.type,
-          accessLevel: "guest"
-        },
-      }).result;
+      // FormData 생성
+      const formData = new FormData();
+      formData.append('audio', file);
+      
+      if (language) {
+        formData.append('language', language);
+      }
 
       setIsUploading(false);
       setIsTranscribing(true);
 
-      // Whisper API 호출
+      // Whisper API 직접 호출 - 파일을 multipart/form-data로 전송
       const response = await fetch(WHISPER_API_ENDPOINT, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          bucket: "shortformai-whisper-input",
-          key: key,
-          language: language,
-        }),
+        body: formData,
       });
 
       // 응답 처리
